@@ -5,9 +5,9 @@ const curry = require('lodash.curry')
 const { unpack, pack } = require('./tgz')
 const cleanup = require('./cleanup')
 const { getVersionList, getTarballs, publishSeries } = require('./npm_utils')
-const updatePackage = require('./update')
+const { updatePackage, updatePackageScope } = require('./update')
 
-module.exports = function (moduleName, oldRegistry, newRegistry, options = { debug: false }) {
+module.exports = function (moduleName, oldRegistry, newRegistry, options = { debug: false , oldScope: '', newScope: '' }) {
 
     if (!options.debug) {
         var unmute = mute()
@@ -15,6 +15,9 @@ module.exports = function (moduleName, oldRegistry, newRegistry, options = { deb
 
     let curried_updatePackage = curry(updatePackage)
     curried_updatePackage = curried_updatePackage(newRegistry)
+
+    let curried_updatePackageScope = curry(updatePackageScope)
+    curried_updatePackageScope = curried_updatePackageScope(options.oldScope, options.newScope)
 
     let curried_getTarballs = curry(getTarballs)
     curried_getTarballs = curried_getTarballs(moduleName, oldRegistry)
@@ -26,9 +29,10 @@ module.exports = function (moduleName, oldRegistry, newRegistry, options = { deb
         .then(curried_getTarballs)
         .then(unpack)
         .then(curried_updatePackage)
+        .then(curried_updatePackageScope)
         .then(pack)
-        .then(curried_publishSeries)
-        .then(cleanup)
+        //.then(curried_publishSeries)
+        //.then(cleanup)
         .then((results) => {
             if (unmute) unmute();
             return results
